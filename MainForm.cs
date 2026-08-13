@@ -57,7 +57,6 @@ internal sealed class MainForm : Form
         BuildWindowStateSaver();
 
         Shown += OnShown;
-        Resize += OnResize;
         FormClosing += OnFormClosing;
     }
 
@@ -546,16 +545,10 @@ internal sealed class MainForm : Form
 
     // ---------- 托盘 ----------
 
-    private void OnResize(object? sender, EventArgs e)
-    {
-        if (WindowState == FormWindowState.Minimized)
-        {
-            HideToTray();
-        }
-    }
-
+    /// <summary>收进系统托盘（仅“关闭方式=最小化到托盘”或询问时选择托盘时使用）。</summary>
     private void HideToTray()
     {
+        // 最小化按钮 = 普通任务栏最小化（不再收进托盘）；仅按“关闭方式”设置收托盘
         ShowInTaskbar = false;
         Hide();
         if (!_trayTipShown)
