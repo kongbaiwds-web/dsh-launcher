@@ -1,0 +1,13 @@
+bin/
+obj/
+publish/
+.tmp/
+*.user
+.vs/
+
+# 构建支持目录（本地 SDK / NuGet 缓存等）
+.dotnet/
+.dotnet-home/
+.appdata/
+.nuget/
+.nuget-local/
