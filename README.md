@@ -7,6 +7,9 @@
 
 ## 功能
 
+- **自动启动 DSH 服务**：启动器检测到 DSH 服务（默认 `http://127.0.0.1:3080`）未运行时，会
+  自动以隐藏窗口拉起服务（等价于 `pnpm dsh web`），等就绪后再加载页面；⚙ 菜单里也有
+  「启动 DSH 服务」可手动触发，横幅「重试」按钮同样会先尝试拉起服务
 - **关闭方式可选**：⚙ 菜单 →「关闭方式」：每次询问 / 最小化到托盘 / 直接退出；「每次询问」时点关闭会弹选择框，可勾选「以后不再提示」记住本次选择
 - **记住窗口状态**：窗口位置和大小自动记忆（拖动/缩放后 800ms 防抖写入注册表，关闭时再存一次），下次启动原样恢复；首次运行默认 1324×895
 - **WebView2 套壳**：默认加载 `http://127.0.0.1:3080`（DeepSeek Harness Web GUI）
@@ -34,13 +37,13 @@ WebView2 运行时需已安装，Win10/11 装 Edge 后一般自带）。
 
 ## 使用
 
-1. 先启动 DSH 服务（确保 `http://127.0.0.1:3080` 可访问）
-2. 双击 `DSHLauncher.exe`
-3. 点右上角 **⚙ 菜单**：
-   - **开机自启**：勾选后开机自动驻留托盘
+1. 双击 `DSHLauncher.exe`（**无需先手动启动 DSH 服务**：服务没开时启动器会自动拉起）
+2. 点右上角 **⚙ 菜单**：
+   - **开机自启**：勾选后开机自动驻留托盘，并自动启动 DSH 服务
+   - **启动 DSH 服务**：手动拉起/重启服务（服务已运行则无操作）
    - **创建桌面快捷方式**：桌面上生成「DSH 启动器.lnk」
    - **修改启动地址…**：改默认 URL
-4. 关闭窗口 = 最小化到托盘；托盘右键 → **退出** 才真正退出
+3. 关闭窗口 = 最小化到托盘；托盘右键 → **退出** 才真正退出
 
 ### 命令行参数
 
@@ -53,6 +56,7 @@ WebView2 运行时需已安装，Win10/11 装 Edge 后一般自带）。
 
 | 事项 | 做法 |
 |---|---|
+| 自动启动服务 | 启动时探测 URL，不可达则以隐藏窗口运行 `pnpm.cmd dsh web`（工作目录 `E:\deepseek\deepseek-harness-master`）；PATH 里没有 pnpm 时回退到 `node.exe --import tsx/esm apps/cli/src/bin.ts web`（即 `pnpm dsh web` 展开后的命令）。日志：`%LOCALAPPDATA%\DSHLauncher\dsh-server.log`。注册表 `HKCU\Software\DSHLauncher` 的 `ServerNode` / `ServerDir` / `ServerArgs` 可覆盖默认值 |
 | 开机自启 | `HKCU\Software\Microsoft\Windows\CurrentVersion\Run` 写入 `"<exe>" --minimized`；取消即删值。检测逻辑校验值指向当前 exe |
 | 桌面快捷方式 | `WScript.Shell` COM 创建 `.lnk`，目标为当前 exe（自动适配 OneDrive 重定向的桌面） |
 | 设置持久化 | `HKCU\Software\DSHLauncher\Url` |
@@ -65,7 +69,8 @@ WebView2 运行时需已安装，Win10/11 装 Edge 后一般自带）。
 
 ## 常见问题
 
-- **横幅提示「无法连接到…」**：DSH 服务没启动，启动服务后点「重试」即可
+- **横幅提示「无法连接到…」**：正常情况下启动器会自动拉起 DSH 服务并等待就绪；若启动超时，
+  点「重试」再试，或查看 `%LOCALAPPDATA%\DSHLauncher\dsh-server.log` 里的服务日志
 - **提示 WebView2 初始化失败**：安装 [WebView2 运行时](https://developer.microsoft.com/microsoft-edge/webview2/)
 - **目标机没有 .NET 8 Desktop Runtime**：先装
   [.NET 8 Desktop Runtime](https://dotnet.microsoft.com/download/dotnet/8.0)，
@@ -91,7 +96,8 @@ dsh-launcher/
 ├── Program.cs           # 入口：单实例 + 事件唤醒
 ├── LaunchOptions.cs     # 命令行参数解析
 ├── Settings.cs          # 注册表设置 / 开机自启 / 桌面快捷方式
-├── MainForm.cs          # 主窗体：工具栏、横幅、托盘、WebView2 逻辑
+├── MainForm.cs          # 主窗体：工具栏、横幅、托盘、WebView2、服务自愈逻辑
+├── DshServer.cs         # DSH 服务启动命令构造与可用性探测
 ├── UrlDialog.cs         # 修改地址对话框
 ├── AppIcon.cs           # 运行时绘制的应用图标
 ├── build.ps1            # 一键发布脚本

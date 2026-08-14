@@ -8,7 +8,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <AssemblyName>DSHLauncher</AssemblyName>
     <RootNamespace>DSHLauncher</RootNamespace>
-    <Version>1.2.1</Version>
+    <Version>1.3.0</Version>
     <ApplicationHighDpiMode>PerMonitorV2</ApplicationHighDpiMode>
     <ApplicationIcon>DSHLauncher.ico</ApplicationIcon>
     <!-- 只保留英文资源，去掉 WebView2 附带的多语言卫星程序集，保持输出精简 -->

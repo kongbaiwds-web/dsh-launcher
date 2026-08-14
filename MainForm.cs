@@ -88,7 +88,7 @@ internal sealed class MainForm : Form
             BackColor = Color.FromArgb(255, 243, 195),
             Cursor = Cursors.Hand,
         };
-        retryButton.Click += (_, _) => Navigate(_options.Url);
+        retryButton.Click += (_, _) => _ = EnsureServerAsync();
 
         _bannerLabel = new Label
         {
@@ -176,6 +176,9 @@ internal sealed class MainForm : Form
         var urlItem = new ToolStripMenuItem("修改启动地址…");
         urlItem.Click += (_, _) => ChangeStartUrl();
 
+        var serverItem = new ToolStripMenuItem("启动 DSH 服务");
+        serverItem.Click += (_, _) => _ = EnsureServerAsync();
+
         var closeMenu = new ToolStripMenuItem("关闭方式");
         _closeAskItem = new ToolStripMenuItem("每次询问");
         _closeTrayItem = new ToolStripMenuItem("最小化到托盘");
@@ -201,6 +204,8 @@ internal sealed class MainForm : Form
             _autoStartItem,
             shortcutItem,
             urlItem,
+            new ToolStripSeparator(),
+            serverItem,
             new ToolStripSeparator(),
             closeMenu,
             new ToolStripSeparator(),
@@ -351,6 +356,9 @@ internal sealed class MainForm : Form
         {
             HideToTray();
         }
+
+        // 服务未运行时自动拉起（开机自启场景的关键：只开窗口不服务 = 之前的“服务暂停”）
+        _ = EnsureServerAsync();
     }
 
     private async Task InitializeWebViewAsync()
@@ -449,6 +457,111 @@ internal sealed class MainForm : Form
         // 目标为 _blank 的链接一律交给系统默认浏览器
         e.Handled = true;
         Settings.OpenInExternalBrowser(e.Uri);
+    }
+
+    // ---------- DSH 服务自愈 ----------
+
+    private bool _serverStarting;
+
+    /// <summary>
+    /// 确保 DSH 服务在运行：探测 URL 不可达时自动拉起服务进程并等待就绪，然后重新加载页面。
+    /// </summary>
+    private async Task EnsureServerAsync()
+    {
+        if (_serverStarting)
+        {
+            return;
+        }
+
+        _serverStarting = true;
+        try
+        {
+            if (await DshServer.IsReachableAsync(_options.Url))
+            {
+                return; // 服务已在运行，无需处理
+            }
+
+            ShowBanner("DSH 服务未运行，正在自动启动…");
+            StartDshServer();
+
+            bool up = await DshServer.WaitUntilReachableAsync(_options.Url, TimeSpan.FromSeconds(120));
+            if (up)
+            {
+                HideBanner();
+                Navigate(_options.Url);
+            }
+            else
+            {
+                ShowBanner("DSH 服务启动超时，请稍后点击「重试」，或查看日志：%LOCALAPPDATA%\\DSHLauncher\\dsh-server.log");
+            }
+        }
+        catch (Exception ex)
+        {
+            ShowBanner("启动 DSH 服务出错：" + ex.Message);
+        }
+        finally
+        {
+            _serverStarting = false;
+        }
+    }
+
+    /// <summary>
+    /// 以隐藏窗口拉起 DSH 服务进程，输出追加到 %LOCALAPPDATA%\DSHLauncher\dsh-server.log。
+    /// 命令等价于 `pnpm dsh web`（工作目录 = DSH 仓库根目录）。
+    /// </summary>
+    private void StartDshServer()
+    {
+        (string fileName, string args, string workingDir) = DshServer.BuildStartCommand();
+
+        if (!File.Exists(fileName))
+        {
+            ShowBanner($"未找到 {fileName}，无法启动 DSH 服务。");
+            return;
+        }
+
+        if (!Directory.Exists(workingDir))
+        {
+            ShowBanner($"DSH 服务目录不存在：{workingDir}");
+            return;
+        }
+
+        string logDir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "DSHLauncher");
+        Directory.CreateDirectory(logDir);
+        string logFile = Path.Combine(logDir, "dsh-server.log");
+
+        try
+        {
+            File.AppendAllText(
+                logFile,
+                $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] DSHLauncher: 启动服务: {fileName} {args} (cwd={workingDir}){Environment.NewLine}");
+        }
+        catch (Exception)
+        {
+            // 日志写不进不阻塞启动
+        }
+
+        // 经 cmd.exe 包装以便把输出重定向到日志；进程独立于启动器存活
+        string cmdExe = Path.Combine(Environment.SystemDirectory, "cmd.exe");
+        string cmdArgs = $"/c \"\"{fileName}\" {args} >> \"{logFile}\" 2>&1\"";
+
+        var psi = new ProcessStartInfo
+        {
+            FileName = cmdExe,
+            Arguments = cmdArgs,
+            WorkingDirectory = workingDir,
+            UseShellExecute = false,
+            CreateNoWindow = true,
+            WindowStyle = ProcessWindowStyle.Hidden,
+        };
+
+        try
+        {
+            Process.Start(psi);
+        }
+        catch (Exception ex)
+        {
+            ShowBanner("启动 DSH 服务失败：" + ex.Message);
+        }
     }
 
     // ---------- 工具栏动作 ----------

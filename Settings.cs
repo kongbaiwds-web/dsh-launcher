@@ -29,6 +29,20 @@ internal static class Settings
     private const string WinWName = "WinW";
     private const string WinHName = "WinH";
 
+    // DSH 服务启动配置：注册表可覆盖，默认值适配本机安装
+    private const string ServerNodeName = "ServerNode";
+    private const string ServerDirName = "ServerDir";
+    private const string ServerArgsName = "ServerArgs";
+
+    /// <summary>兜底 Node.js 路径（本机 E:\Cyrene\node 在用户 PATH 上）。</summary>
+    public const string DefaultServerNode = @"E:\Cyrene\node\node.exe";
+
+    /// <summary>DSH 仓库根目录（pnpm dsh web 的工作目录）。</summary>
+    public const string DefaultServerDir = @"E:\deepseek\deepseek-harness-master";
+
+    /// <summary>直接调用 node 运行 CLI 源入口 = `pnpm dsh web` 展开后的实际命令。</summary>
+    public const string DefaultServerArgs = "--import tsx/esm apps/cli/src/bin.ts web";
+
     private const string RunKeyPath = @"Software\Microsoft\Windows\CurrentVersion\Run";
     private const string RunValueName = "DSHLauncher";
 
@@ -129,6 +143,34 @@ internal static class Settings
         {
             // 注册表不可写时静默忽略（不影响使用）
         }
+    }
+
+    /// <summary>读取 Node.js 可执行文件路径（注册表可覆盖，默认本机路径）。</summary>
+    public static string GetServerNode() => GetAppString(ServerNodeName, DefaultServerNode);
+
+    /// <summary>读取 DSH 仓库根目录（启动服务的工作目录）。</summary>
+    public static string GetServerDir() => GetAppString(ServerDirName, DefaultServerDir);
+
+    /// <summary>读取启动服务时传给 node 的参数。</summary>
+    public static string GetServerArgs() => GetAppString(ServerArgsName, DefaultServerArgs);
+
+    /// <summary>读取注册表字符串值，缺失或空白时回退默认值。</summary>
+    private static string GetAppString(string name, string fallback)
+    {
+        try
+        {
+            using RegistryKey? key = Registry.CurrentUser.OpenSubKey(AppKeyPath);
+            if (key?.GetValue(name) is string s && !string.IsNullOrWhiteSpace(s))
+            {
+                return s;
+            }
+        }
+        catch (Exception)
+        {
+            // 注册表不可读时使用默认值
+        }
+
+        return fallback;
     }
 
     /// <summary>开机自启状态：检查 HKCU Run 键里的值是否指向当前 exe。</summary>
