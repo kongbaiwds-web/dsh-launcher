@@ -40,7 +40,7 @@ internal sealed class MainForm : Form
         _options = options;
         _showEvent = showEvent;
 
-        Text = "DSH 启动器";
+        Text = "DeepSeek Harness启动器";
         StartPosition = FormStartPosition.CenterScreen;
         // 首次运行的默认尺寸（用户调整后会被记住并覆盖）
         Size = new Size(1324, 895);
@@ -164,7 +164,7 @@ internal sealed class MainForm : Form
                 MessageBox.Show(
                     this,
                     "设置开机自启失败：\n" + ex.Message,
-                    "DSH 启动器",
+                    "DeepSeek Harness启动器",
                     MessageBoxButtons.OK,
                     MessageBoxIcon.Error);
             }
@@ -178,6 +178,9 @@ internal sealed class MainForm : Form
 
         var serverItem = new ToolStripMenuItem("启动 DSH 服务");
         serverItem.Click += (_, _) => _ = EnsureServerAsync();
+
+        var stopServerItem = new ToolStripMenuItem("关闭 DSH 服务");
+        stopServerItem.Click += (_, _) => StopDshService();
 
         var closeMenu = new ToolStripMenuItem("关闭方式");
         _closeAskItem = new ToolStripMenuItem("每次询问");
@@ -206,6 +209,7 @@ internal sealed class MainForm : Form
             urlItem,
             new ToolStripSeparator(),
             serverItem,
+            stopServerItem,
             new ToolStripSeparator(),
             closeMenu,
             new ToolStripSeparator(),
@@ -231,7 +235,7 @@ internal sealed class MainForm : Form
     private void BuildTray()
     {
         var trayMenu = new ContextMenuStrip();
-        var showItem = new ToolStripMenuItem("显示 DSH 启动器");
+        var showItem = new ToolStripMenuItem("显示 DeepSeek Harness启动器");
         showItem.Click += (_, _) => RestoreFromTray();
         var exitItem = new ToolStripMenuItem("退出");
         exitItem.Click += (_, _) =>
@@ -246,7 +250,7 @@ internal sealed class MainForm : Form
         _tray = new NotifyIcon
         {
             Icon = AppIcon.Create(),
-            Text = "DSH 启动器",
+            Text = "DeepSeek Harness启动器",
             ContextMenuStrip = trayMenu,
             Visible = true,
         };
@@ -351,6 +355,7 @@ internal sealed class MainForm : Form
 
     private async void OnShown(object? sender, EventArgs e)
     {
+        Settings.MigrateDesktopShortcut();
         await InitializeWebViewAsync();
         if (_options.StartMinimized)
         {
@@ -389,7 +394,7 @@ internal sealed class MainForm : Form
                 this,
                 "WebView2 初始化失败：\n" + ex.Message +
                 "\n\n请安装 Microsoft Edge WebView2 运行时：\nhttps://developer.microsoft.com/microsoft-edge/webview2/",
-                "DSH 启动器",
+                "DeepSeek Harness启动器",
                 MessageBoxButtons.OK,
                 MessageBoxIcon.Warning);
             ShowBanner("WebView2 初始化失败，请安装 WebView2 运行时后重试。");
@@ -449,7 +454,7 @@ internal sealed class MainForm : Form
     private void OnDocumentTitleChanged(object? sender, object e)
     {
         string? title = _webView.CoreWebView2?.DocumentTitle;
-        Text = string.IsNullOrEmpty(title) ? "DSH 启动器" : $"DSH 启动器 — {title}";
+        Text = string.IsNullOrEmpty(title) ? "DeepSeek Harness启动器" : $"DeepSeek Harness启动器 — {title}";
     }
 
     private void OnNewWindowRequested(object? sender, CoreWebView2NewWindowRequestedEventArgs e)
@@ -564,6 +569,19 @@ internal sealed class MainForm : Form
         }
     }
 
+    private void StopDshService()
+    {
+        bool stopped = DshServer.StopServer();
+        string message = stopped ? "DSH 服务已关闭。" : "未发现正在运行的 DSH 服务。";
+        MessageBox.Show(
+            this,
+            message,
+            "DeepSeek Harness启动器",
+            MessageBoxButtons.OK,
+            stopped ? MessageBoxIcon.Information : MessageBoxIcon.Information);
+    }
+
+
     // ---------- 工具栏动作 ----------
 
     private void OpenInExternalBrowser()
@@ -580,7 +598,7 @@ internal sealed class MainForm : Form
             MessageBox.Show(
                 this,
                 $"桌面快捷方式已创建：\n{path}",
-                "DSH 启动器",
+                "DeepSeek Harness启动器",
                 MessageBoxButtons.OK,
                 MessageBoxIcon.Information);
         }
@@ -589,7 +607,7 @@ internal sealed class MainForm : Form
             MessageBox.Show(
                 this,
                 "创建桌面快捷方式失败：\n" + ex.Message,
-                "DSH 启动器",
+                "DeepSeek Harness启动器",
                 MessageBoxButtons.OK,
                 MessageBoxIcon.Error);
         }
@@ -620,10 +638,10 @@ internal sealed class MainForm : Form
         string webView2Version = CoreWebView2Environment.GetAvailableBrowserVersionString() ?? "未知";
         MessageBox.Show(
             this,
-            $"DSH 启动器 v{version}\n\n" +
+            $"DeepSeek Harness启动器 v{version}\n\n" +
             $"WebView2 运行时：{webView2Version}\n" +
             $"默认地址：{LaunchOptions.DefaultUrl}\n\n" +
-            "DeepSeek Harness 桌面启动器（WebView2 套壳）",
+            "DeepSeek Harness启动器（WebView2 套壳）",
             "关于",
             MessageBoxButtons.OK,
             MessageBoxIcon.Information);
@@ -666,7 +684,7 @@ internal sealed class MainForm : Form
         Hide();
         if (!_trayTipShown)
         {
-            _tray.ShowBalloonTip(2500, "DSH 启动器", "已最小化到系统托盘，双击图标可恢复窗口。", ToolTipIcon.Info);
+            _tray.ShowBalloonTip(2500, "DeepSeek Harness启动器", "已最小化到系统托盘，双击图标可恢复窗口。", ToolTipIcon.Info);
             _trayTipShown = true;
         }
     }

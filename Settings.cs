@@ -206,7 +206,20 @@ internal static class Settings
     public static string CreateDesktopShortcut()
     {
         string desktop = Environment.GetFolderPath(Environment.SpecialFolder.Desktop);
-        string linkPath = Path.Combine(desktop, "DSH 启动器.lnk");
+        string oldLinkPath = Path.Combine(desktop, "DSH 启动器.lnk");
+        string linkPath = Path.Combine(desktop, "DeepSeek Harness启动器.lnk");
+
+        try
+        {
+            if (File.Exists(oldLinkPath))
+            {
+                File.Delete(oldLinkPath);
+            }
+        }
+        catch (Exception)
+        {
+            // 旧快捷方式删除失败不阻塞创建新快捷方式
+        }
 
         Type shellType = Type.GetTypeFromProgID("WScript.Shell")
             ?? throw new InvalidOperationException("无法创建 WScript.Shell COM 对象。");
@@ -214,10 +227,35 @@ internal static class Settings
         dynamic shortcut = shell.CreateShortcut(linkPath);
         shortcut.TargetPath = ExecutablePath;
         shortcut.WorkingDirectory = Path.GetDirectoryName(ExecutablePath);
-        shortcut.Description = "DeepSeek Harness 桌面启动器（WebView2 套壳）";
+        shortcut.Description = "DeepSeek Harness启动器（WebView2 套壳）";
         shortcut.IconLocation = $"{ExecutablePath},0";
         shortcut.Save();
         return linkPath;
+    }
+
+    /// <summary>启动时把旧版桌面快捷方式迁移为新名称/新图标。</summary>
+    public static void MigrateDesktopShortcut()
+    {
+        try
+        {
+            string desktop = Environment.GetFolderPath(Environment.SpecialFolder.Desktop);
+            string oldLinkPath = Path.Combine(desktop, "DSH 启动器.lnk");
+            string newLinkPath = Path.Combine(desktop, "DeepSeek Harness启动器.lnk");
+
+            if (File.Exists(oldLinkPath))
+            {
+                File.Delete(oldLinkPath);
+            }
+
+            if (!File.Exists(newLinkPath))
+            {
+                CreateDesktopShortcut();
+            }
+        }
+        catch (Exception)
+        {
+            // 迁移失败不影响启动器正常运行
+        }
     }
 
     public static void OpenInExternalBrowser(string url)

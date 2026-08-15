@@ -1,3 +1,5 @@
+using System.Diagnostics;
+
 namespace DSHLauncher;
 
 /// <summary>
@@ -33,6 +35,62 @@ internal static class DshServer
         }
 
         return (Settings.DefaultServerNode, Settings.DefaultServerArgs, serverDir);
+    }
+
+    /// <summary>关闭正在监听 DSH 默认端口的服务进程。</summary>
+    public static bool StopServer()
+    {
+        try
+        {
+            var startInfo = new ProcessStartInfo("netstat", "-ano -p tcp")
+            {
+                UseShellExecute = false,
+                RedirectStandardOutput = true,
+                CreateNoWindow = true,
+            };
+            using var process = Process.Start(startInfo);
+            if (process is null) return false;
+
+            string output = process.StandardOutput.ReadToEnd();
+            process.WaitForExit();
+
+            var pids = new HashSet<int>();
+            foreach (string rawLine in output.Split('\n'))
+            {
+                string line = rawLine.Trim();
+                if (!line.Contains(":3080", StringComparison.OrdinalIgnoreCase))
+                {
+                    continue;
+                }
+
+                string[] parts = line.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+                if (parts.Length >= 5 && int.TryParse(parts[^1], out int pid) && pid != 0)
+                {
+                    pids.Add(pid);
+                }
+            }
+
+            bool stopped = false;
+            foreach (int pid in pids)
+            {
+                try
+                {
+                    using var target = Process.GetProcessById(pid);
+                    target.Kill();
+                    stopped = true;
+                }
+                catch (Exception)
+                {
+                    // 进程可能已经退出，忽略
+                }
+            }
+
+            return stopped;
+        }
+        catch (Exception)
+        {
+            return false;
+        }
     }
 
     /// <summary>在 PATH 各目录中查找文件（.cmd/.exe/.bat 等），找不到返回 null。</summary>

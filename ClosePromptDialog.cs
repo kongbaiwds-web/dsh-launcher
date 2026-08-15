@@ -14,7 +14,7 @@ internal sealed class ClosePromptDialog : Form
 
     public ClosePromptDialog()
     {
-        Text = "DSH 启动器";
+        Text = "DeepSeek Harness启动器";
         FormBorderStyle = FormBorderStyle.FixedDialog;
         MaximizeBox = false;
         MinimizeBox = false;
