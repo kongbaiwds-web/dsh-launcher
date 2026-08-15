@@ -3,18 +3,25 @@
 给 DeepSeek Harness Web GUI 做的 Windows 轻量级桌面启动器：**WebView2 套壳**，带
 **开机自启**和**桌面快捷方式**支持。C# / .NET 8 / WinForms，单窗口、常驻系统托盘。
 
-![技术栈](https://img.shields.io/badge/.NET-8.0-512BD4) ![WebView2](https://img.shields.io/badge/WebView2-Evergreen-0078d6)
+![技术栈](https://img.shields.io/badge/.NET-8.0-512BD4) ![WebView2](https://img.shields.io/badge/WebView2-Evergreen-0078d6) ![Release](https://img.shields.io/github/v/release/kongbaiwds-web/dsh-launcher?color=blue)
+
+📦 **下载最新版**：[Releases 页面](https://github.com/kongbaiwds-web/dsh-launcher/releases/latest)（下载 `DSHLauncher.exe`，双击运行即可）
 
 ## 功能
 
-- **自动启动 DSH 服务**：启动器检测到 DSH 服务（默认 `http://127.0.0.1:3080`）未运行时，会
-  自动以隐藏窗口拉起服务（等价于 `pnpm dsh web`），等就绪后再加载页面；⚙ 菜单里也有
-  「启动 DSH 服务」可手动触发，横幅「重试」按钮同样会先尝试拉起服务
+### ✨ v1.4.0 新增
+
+- **DeepSeek Harness 品牌形象**：窗口、托盘、桌面快捷方式统一使用黑色小鲸鱼图标（256×256 高清版）；窗口标题、托盘、关于等显示为 `DeepSeek Harness启动器`
+- **⚙ 菜单新增「关闭 DSH 服务」**：一键结束正在监听 `127.0.0.1:3080` 的 DSH 服务进程
+- **桌面快捷方式自动迁移**：启动/构建时自动把旧 `DSH 启动器.lnk` 更新为 `DeepSeek Harness启动器.lnk`
+
+### 核心功能
+
+- **自动启动 DSH 服务**：启动器检测到 DSH 服务（默认 `http://127.0.0.1:3080`）未运行时，会自动以隐藏窗口拉起服务（等价于 `pnpm dsh web`），等就绪后再加载页面；⚙ 菜单里也有「启动 DSH 服务」可手动触发，横幅「重试」按钮同样会先尝试拉起服务
 - **关闭方式可选**：⚙ 菜单 →「关闭方式」：每次询问 / 最小化到托盘 / 直接退出；「每次询问」时点关闭会弹选择框，可勾选「以后不再提示」记住本次选择
 - **记住窗口状态**：窗口位置和大小自动记忆（拖动/缩放后 800ms 防抖写入注册表，关闭时再存一次），下次启动原样恢复；首次运行默认 1324×895
 - **WebView2 套壳**：默认加载 `http://127.0.0.1:3080`（DeepSeek Harness Web GUI）
-- **开机自启**：⚙ 菜单一键开启/关闭（写入 `HKCU\...\CurrentVersion\Run`，无需管理员权限）；
-  自启时以 `--minimized` 启动，直接驻留托盘
+- **开机自启**：⚙ 菜单一键开启/关闭（写入 `HKCU\...\CurrentVersion\Run`，无需管理员权限）；自启时以 `--minimized` 启动，直接驻留托盘
 - **桌面快捷方式**：⚙ 菜单一键创建「DeepSeek Harness启动器.lnk」到桌面
 - **系统托盘**：最小化按钮 = 普通任务栏最小化；按「关闭方式」设置（或询问时选择）收进托盘；双击托盘图标恢复；首次提示气泡
 - **离线横幅**：服务未启动时显示黄色横幅 + 重试按钮，不弹错误页干瞪眼

@@ -17,23 +17,31 @@ git push origin main
 if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
 $tag = "v1.4.0"
-Write-Host "==> git tag $tag"
-git rev-parse -q --verify "refs/tags/$tag" 2>$null
-if ($LASTEXITCODE -ne 0) {
-    git tag $tag
-}
+# Always point the tag at the current HEAD (idempotent: re-running after new
+# commits keeps the tag in sync instead of reusing a stale tag from an
+# earlier run).
+Write-Host "==> git tag -f $tag"
+git tag -f $tag
+if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
-Write-Host "==> git push origin $tag"
-git push origin $tag
+Write-Host "==> git push --force origin $tag"
+git push --force origin $tag
 if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
 $gh = Get-Command gh -ErrorAction SilentlyContinue
 if ($null -ne $gh) {
-    Write-Host "==> gh release create $tag"
-    gh release create $tag "publish\win-x64\DSHLauncher.exe" `
-        --title "DeepSeek Harness Launcher v1.4.0" `
-        --notes "v1.4.0: DeepSeek Harness icon, new display name, close DSH service."
-    if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+    # Idempotent: skip creation if a release with this tag already exists.
+    gh release view $tag --json tagName 2>$null | Out-Null
+    if ($LASTEXITCODE -eq 0) {
+        Write-Host "Release $tag already exists - skipping create."
+    }
+    else {
+        Write-Host "==> gh release create $tag"
+        gh release create $tag "publish\win-x64\DSHLauncher.exe" `
+            --title "DeepSeek Harness Launcher v1.4.0" `
+            --notes "v1.4.0: DeepSeek Harness icon, new display name, close DSH service."
+        if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+    }
 }
 else {
     Write-Host "gh not found. Please create the Release manually:"
