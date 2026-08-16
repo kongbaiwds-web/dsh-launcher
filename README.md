@@ -7,6 +7,8 @@
 
 📦 **下载最新版**：[Releases 页面](https://github.com/kongbaiwds-web/dsh-launcher/releases/latest) —— 推荐下载 **`DSHLauncherSetup.exe`（一键安装程序）**；也提供便携版 `DSHLauncher.exe`（需 .NET 8 Desktop Runtime）
 
+![DeepSeek Harness启动器 主界面](docs/screenshots/v1.5.0-hero.png)
+
 ## 安装
 
 > 安装程序与启动器均为框架依赖版，需要 **.NET 8 Desktop Runtime**（[下载](https://dotnet.microsoft.com/download/dotnet/8.0)）；Win10/11 装 Edge 后一般自带 WebView2。
@@ -35,6 +37,13 @@ irm https://github.com/kongbaiwds-web/dsh-launcher/releases/latest/download/DSHL
 例如：`& "$env:TEMP\DSHLauncherSetup.exe" --silent --autostart --launch`
 
 ## 功能
+
+### ✨ v1.5.0 新增
+
+- **一键安装程序（`DSHLauncherSetup.exe`）**：单文件安装程序（内嵌全部文件、黑色小鲸鱼图标），支持双击安装与命令行 / AI Agent 静默安装（`--silent` / `--autostart` / `--launch` / `--dir=路径`，退出码 0 = 成功）
+- **⚙ 菜单新增「检查更新」（支持自动更新）**：自动查询 GitHub 上版本号最高的 Release，发现新版本时可一键自动更新（下载 → 静默更新 → 自动重启）
+
+![⚙ 菜单 · 检查更新](docs/screenshots/v1.5.0-menu-update.png)
 
 ### ✨ v1.4.0 新增
 
