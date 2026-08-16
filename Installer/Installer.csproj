@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <UseWindowsForms>true</UseWindowsForms>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <AssemblyName>DSHLauncherSetup</AssemblyName>
+    <RootNamespace>DSHLauncherInstaller</RootNamespace>
+    <ApplicationIcon>..\DSHLauncher.ico</ApplicationIcon>
+    <Version>1.5.0</Version>
+    <!-- 单文件发布：installer 是一个独立 exe（内嵌托管程序集 + payload.zip），可直接放到项目根目录 -->
+    <PublishSingleFile>true</PublishSingleFile>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- payload.zip 由 build-installer.ps1 在构建前生成（打包 publish\win-x64 全部文件） -->
+    <EmbeddedResource Include="payload.zip" LogicalName="payload.zip" />
+  </ItemGroup>
+
+</Project>

@@ -1,4 +1,7 @@
 using System.Diagnostics;
+using System.Net;
+using System.Net.Http;
+using System.Text.Json;
 using Microsoft.Web.WebView2.Core;
 using Microsoft.Web.WebView2.WinForms;
 
@@ -192,6 +195,9 @@ internal sealed class MainForm : Form
         closeMenu.DropDownItems.AddRange(new ToolStripItem[] { _closeAskItem, _closeTrayItem, _closeExitItem });
         RefreshCloseMenuChecks();
 
+        var updateItem = new ToolStripMenuItem("检查更新…");
+        updateItem.Click += (_, _) => CheckForUpdates();
+
         var aboutItem = new ToolStripMenuItem("关于");
         aboutItem.Click += (_, _) => ShowAbout();
 
@@ -213,6 +219,7 @@ internal sealed class MainForm : Form
             new ToolStripSeparator(),
             closeMenu,
             new ToolStripSeparator(),
+            updateItem,
             aboutItem,
             exitItem,
         });
@@ -645,6 +652,153 @@ internal sealed class MainForm : Form
             "关于",
             MessageBoxButtons.OK,
             MessageBoxIcon.Information);
+    }
+
+    /// <summary>
+    /// 检查更新：读取 GitHub 上所有 Release 里版本号最高的一个，与本地版本比较。
+    /// 只提示、给下载入口，不做自动更新。
+    /// </summary>
+    private async void CheckForUpdates()
+    {
+        const string repo = "kongbaiwds-web/dsh-launcher";
+        Version? local = typeof(Program).Assembly.GetName().Version;
+        string localStr = local == null ? "0.0.0" : $"{local.Major}.{local.Minor}.{local.Build}";
+
+        try
+        {
+            using var client = new HttpClient();
+            client.DefaultRequestHeaders.UserAgent.ParseAdd("DSHLauncher-Updater/1.0");
+            client.Timeout = TimeSpan.FromSeconds(10);
+            string json = await client.GetStringAsync($"https://api.github.com/repos/{repo}/releases?per_page=10");
+
+            string? latestTag = null;
+            using (JsonDocument doc = JsonDocument.Parse(json))
+            {
+                foreach (JsonElement release in doc.RootElement.EnumerateArray())
+                {
+                    if (!release.TryGetProperty("tag_name", out JsonElement tagProp)) continue;
+                    string? tag = tagProp.GetString();
+                    if (string.IsNullOrWhiteSpace(tag) || !tag.StartsWith('v')) continue;
+                    string candidate = tag.TrimStart('v');
+                    if (latestTag == null || CompareVersions(candidate, latestTag) > 0) latestTag = candidate;
+                }
+            }
+
+            if (latestTag == null)
+            {
+                MessageBox.Show(this, "没有找到可用的版本信息（仓库未发布 Release？）。",
+                    "检查更新", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                return;
+            }
+
+            if (CompareVersions(latestTag, localStr) <= 0)
+            {
+                MessageBox.Show(this, $"已是最新版本 v{localStr}",
+                    "检查更新", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            }
+            else
+            {
+                DialogResult result = MessageBox.Show(
+                    this,
+                    $"发现新版本 v{latestTag}（当前 v{localStr}）\n\n是否立即更新？",
+                    "检查更新",
+                    MessageBoxButtons.YesNo,
+                    MessageBoxIcon.Question);
+                if (result == DialogResult.Yes)
+                {
+                    await UpdateTo(latestTag);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show(this, $"检查更新失败：{ex.Message}",
+                "检查更新", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+        }
+    }
+
+    /// <summary>
+    /// 自动更新：下载最新安装程序 → 静默安装到当前目录 → 关闭自身 → 由安装程序重启新版。
+    /// </summary>
+    private async Task UpdateTo(string latestTag)
+    {
+        const string repo = "kongbaiwds-web/dsh-launcher";
+        string url = $"https://github.com/{repo}/releases/download/v{latestTag}/DSHLauncherSetup.exe";
+        string setupPath = Path.Combine(Path.GetTempPath(), "DSHLauncherSetup.exe");
+
+        using var progress = new UpdateProgressDialog($"正在下载 v{latestTag}…");
+        progress.Show(this);
+        try
+        {
+            using var web = new WebClient();
+            web.DownloadProgressChanged += (_, e) => progress.SetProgress(e.ProgressPercentage);
+            await web.DownloadFileTaskAsync(url, setupPath);
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show(this, $"自动更新下载失败：{ex.Message}\n\n请到 Releases 页面手动下载。",
+                "自动更新", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            return;
+        }
+        finally
+        {
+            progress.Close();
+        }
+
+        if (!File.Exists(setupPath) || new FileInfo(setupPath).Length < 100_000)
+        {
+            MessageBox.Show(this, "下载的更新文件不完整，请到 Releases 页面手动下载。",
+                "自动更新", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            return;
+        }
+
+        // 关闭自身，交由安装程序完成文件替换并重启新版（安装程序会等待本进程退出）
+        string launcherDir = Path.GetDirectoryName(Application.ExecutablePath) ?? "";
+        Process.Start(new ProcessStartInfo(setupPath)
+        {
+            Arguments = $"--silent --dir=\"{launcherDir}\" --launch",
+            UseShellExecute = true,
+            WorkingDirectory = Path.GetDirectoryName(setupPath) ?? "",
+        });
+        _allowExit = true;
+        Close();
+    }
+
+    /// <summary>自动更新时的下载进度小窗口。</summary>
+    private sealed class UpdateProgressDialog : Form
+    {
+        private readonly ProgressBar _bar = new() { Minimum = 0, Maximum = 100 };
+
+        public UpdateProgressDialog(string text)
+        {
+            Text = "自动更新";
+            FormBorderStyle = FormBorderStyle.FixedDialog;
+            ControlBox = false;
+            ShowInTaskbar = false;
+            StartPosition = FormStartPosition.CenterScreen;
+            ClientSize = new Size(340, 90);
+            var label = new Label { Text = text, AutoSize = true, Location = new Point(16, 16) };
+            _bar.Location = new Point(16, 48);
+            _bar.Size = new Size(308, 20);
+            Controls.Add(label);
+            Controls.Add(_bar);
+        }
+
+        public void SetProgress(int percent) => _bar.Value = Math.Clamp(percent, 0, 100);
+    }
+
+    /// <summary>按 x.y.z 语义比较两个版本号；a &gt; b 返回正数。</summary>
+    private static int CompareVersions(string a, string b)
+    {
+        string[] pa = a.Split('.');
+        string[] pb = b.Split('.');
+        for (int i = 0; i < Math.Max(pa.Length, pb.Length); i++)
+        {
+            int x = i < pa.Length && int.TryParse(pa[i], out int xi) ? xi : 0;
+            int y = i < pb.Length && int.TryParse(pb[i], out int yi) ? yi : 0;
+            if (x != y) return x.CompareTo(y);
+        }
+        return 0;
     }
 
     private void SetCloseBehaviorMenu(CloseBehavior behavior)

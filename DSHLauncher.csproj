@@ -12,7 +12,7 @@
       <RootNamespace>DSHLauncher</RootNamespace>
       <AssemblyTitle>DeepSeek Harness启动器</AssemblyTitle>
       <Product>DeepSeek Harness启动器</Product>
-    <Version>1.4.0</Version>
+    <Version>1.5.0</Version>
     <ApplicationHighDpiMode>PerMonitorV2</ApplicationHighDpiMode>
     <ApplicationIcon>DSHLauncher.ico</ApplicationIcon>
     <!-- 只保留英文资源，去掉 WebView2 附带的多语言卫星程序集，保持输出精简 -->
@@ -21,6 +21,13 @@
 
   <ItemGroup>
     <PackageReference Include="Microsoft.Web.WebView2" Version="1.0.2903.40" />
+  </ItemGroup>
+
+  <!-- Installer 是独立的子项目，不要被本项目的默认通配符编译进来 -->
+  <ItemGroup>
+    <Compile Remove="Installer\**" />
+    <EmbeddedResource Remove="Installer\**" />
+    <None Remove="Installer\**" />
   </ItemGroup>
 
 </Project>

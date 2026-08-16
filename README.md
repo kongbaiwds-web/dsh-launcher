@@ -5,7 +5,34 @@
 
 ![技术栈](https://img.shields.io/badge/.NET-8.0-512BD4) ![WebView2](https://img.shields.io/badge/WebView2-Evergreen-0078d6) ![Release](https://img.shields.io/github/v/release/kongbaiwds-web/dsh-launcher?color=blue)
 
-📦 **下载最新版**：[Releases 页面](https://github.com/kongbaiwds-web/dsh-launcher/releases/latest)（下载 `DSHLauncher.exe`，双击运行即可）
+📦 **下载最新版**：[Releases 页面](https://github.com/kongbaiwds-web/dsh-launcher/releases/latest) —— 推荐下载 **`DSHLauncherSetup.exe`（一键安装程序）**；也提供便携版 `DSHLauncher.exe`（需 .NET 8 Desktop Runtime）
+
+## 安装
+
+> 安装程序与启动器均为框架依赖版，需要 **.NET 8 Desktop Runtime**（[下载](https://dotnet.microsoft.com/download/dotnet/8.0)）；Win10/11 装 Edge 后一般自带 WebView2。
+
+### 方式一：下载安装程序（推荐）
+
+下载 `DSHLauncherSetup.exe` 双击运行，按提示安装即可（默认装到 `%LOCALAPPDATA%\Programs\DSHLauncher`，自动创建桌面快捷方式）。
+
+### 方式二：命令行 / AI Agent 一键安装
+
+在 PowerShell 中执行（也适合交给 AI 助手直接运行，成功退出码为 0）：
+
+```powershell
+irm https://github.com/kongbaiwds-web/dsh-launcher/releases/latest/download/DSHLauncherSetup.exe -OutFile "$env:TEMP\DSHLauncherSetup.exe"; & "$env:TEMP\DSHLauncherSetup.exe" --silent
+```
+
+静默参数：
+
+| 参数 | 说明 |
+|---|---|
+| `--silent` | 静默安装（无界面），默认目录 + 创建桌面快捷方式，不自动启动 |
+| `--autostart` | 开机自启（与 `--silent` 搭配）|
+| `--launch` | 安装完成后启动启动器 |
+| `--dir=路径` | 指定安装目录 |
+
+例如：`& "$env:TEMP\DSHLauncherSetup.exe" --silent --autostart --launch`
 
 ## 功能
 

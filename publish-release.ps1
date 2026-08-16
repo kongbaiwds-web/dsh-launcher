@@ -1,4 +1,4 @@
-﻿# Publish a new launcher version to GitHub in one command:
+# Publish a new launcher version to GitHub in one command:
 #   bump <Version> in DSHLauncher.csproj -> build -> commit -> tag -> push -> create Release with exe.
 #
 # Usage (run from this directory):
@@ -59,13 +59,18 @@ Write-Host "Version set to $Version in DSHLauncher.csproj"
 
 # --- build ------------------------------------------------------------------
 if (-not $SkipBuild) {
-    Write-Host "==> build.ps1"
-    & (Join-Path $PSScriptRoot "build.ps1")
+    Write-Host "==> build-installer.ps1 (launcher + setup)"
+    & (Join-Path $PSScriptRoot "build-installer.ps1")
     if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 }
 $exe = Join-Path $PSScriptRoot "publish\win-x64\DSHLauncher.exe"
 if (-not (Test-Path -LiteralPath $exe)) {
     Write-Error "Build output not found: $exe (run without -SkipBuild first)"
+    exit 1
+}
+$setup = Join-Path $PSScriptRoot "DSHLauncherSetup.exe"
+if (-not (Test-Path -LiteralPath $setup)) {
+    Write-Error "Installer not found: $setup (run build-installer.ps1 first)"
     exit 1
 }
 
@@ -107,7 +112,7 @@ if ($releaseExists) {
     Write-Host "Release $tag already exists - skipping create."
 }
 else {
-    $ghArgs = @("release", "create", $tag, $exe, "--title", "DeepSeek Harness 启动器 v$Version")
+    $ghArgs = @("release", "create", $tag, $setup, $exe, "--title", "DeepSeek Harness 启动器 v$Version")
     if ($Notes) {
         # Pass notes via a UTF-8 (no BOM) file to avoid encoding issues with
         # Chinese text in native-command arguments under Windows PowerShell 5.1.

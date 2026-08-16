@@ -1,4 +1,4 @@
-# Build script: publish Release to publish\win-x64
+﻿# Build script: publish Release to publish\win-x64
 # Usage: pwsh ./build.ps1
 # If system dotnet is not in PATH, use E:\deepseek\work\.dotnet
 
@@ -34,11 +34,13 @@ public static class DeepSeekIconGenerator
             using (var g = Graphics.FromImage(bitmap))
             {
                 g.SmoothingMode = SmoothingMode.AntiAlias;
-                g.Clear(Color.White);
+                g.Clear(Color.Transparent);
                 using (var path = BuildWhalePath())
                 using (var brush = new SolidBrush(Color.Black))
+                using (var pen = new Pen(Color.Black, 10f) { LineJoin = LineJoin.Round, StartCap = LineCap.Round, EndCap = LineCap.Round })
                 {
                     g.FillPath(brush, path);
+                    g.DrawPath(pen, path);
                 }
             }
 
@@ -65,11 +67,11 @@ public static class DeepSeekIconGenerator
         RectangleF bounds = path.GetBounds();
         const float targetSize = 224f;
         float scale = Math.Min(targetSize / bounds.Width, targetSize / bounds.Height);
-        using (var matrix = new Matrix())
+        float cx = (256f - bounds.Width * scale) / 2f;
+        float cy = (256f - bounds.Height * scale) / 2f;
+        // single explicit matrix (no composition-order ambiguity -> whale stays centered)
+        using (var matrix = new Matrix(scale, 0f, 0f, scale, cx - bounds.X * scale, cy - bounds.Y * scale))
         {
-            matrix.Translate(-bounds.X, -bounds.Y);
-            matrix.Scale(scale, scale);
-            matrix.Translate((256f - bounds.Width * scale) / 2f, (256f - bounds.Height * scale) / 2f);
             path.Transform(matrix);
         }
         return path;
