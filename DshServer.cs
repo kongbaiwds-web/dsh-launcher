@@ -24,17 +24,44 @@ internal static class DshServer
         if (!string.IsNullOrWhiteSpace(nodeOverride) || !string.IsNullOrWhiteSpace(argsOverride))
         {
             string node = string.IsNullOrWhiteSpace(nodeOverride) ? Settings.DefaultServerNode : nodeOverride.Trim();
-            string args = string.IsNullOrWhiteSpace(argsOverride) ? Settings.DefaultServerArgs : argsOverride.Trim();
+            string args = string.IsNullOrWhiteSpace(argsOverride) ? BuildDefaultServerArgs(serverDir) : argsOverride.Trim();
             return (node, args, serverDir);
         }
 
         string? pnpm = ResolveOnPath("pnpm.cmd");
         if (pnpm is not null)
         {
-            return (pnpm, "dsh web", serverDir);
+            string pnpmArgs = SupportsNoOpen(serverDir) ? "dsh web --no-open" : "dsh web";
+            return (pnpm, pnpmArgs, serverDir);
         }
 
-        return (Settings.DefaultServerNode, Settings.DefaultServerArgs, serverDir);
+        return (Settings.DefaultServerNode, BuildDefaultServerArgs(serverDir), serverDir);
+    }
+
+    /// <summary>新版 Harness 支持 --no-open，旧版不支持；根据仓库源码自动判断。</summary>
+    private static bool SupportsNoOpen(string serverDir)
+    {
+        try
+        {
+            string startupFile = Path.Combine(serverDir, "packages", "bundle", "web-app", "src", "startup.ts");
+            return File.Exists(startupFile)
+                && File.ReadAllText(startupFile).Contains("--no-open", StringComparison.Ordinal);
+        }
+        catch
+        {
+            // 无法判断时按新版处理，避免新版默认再开浏览器
+            return true;
+        }
+    }
+
+    private static string BuildDefaultServerArgs(string serverDir)
+    {
+        string args = Settings.DefaultServerArgs;
+        if (SupportsNoOpen(serverDir))
+        {
+            args += " --no-open";
+        }
+        return args;
     }
 
     /// <summary>关闭正在监听 DSH 默认端口的服务进程。</summary>
