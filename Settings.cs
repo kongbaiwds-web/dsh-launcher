@@ -154,6 +154,12 @@ internal static class Settings
     /// <summary>读取启动服务时传给 node 的参数。</summary>
     public static string GetServerArgs() => GetAppString(ServerArgsName, DefaultServerArgs);
 
+    /// <summary>仅读取注册表中的 ServerNode 覆盖值，未设置时返回 null。</summary>
+    public static string? GetServerNodeOverride() => GetAppStringOrNull(ServerNodeName);
+
+    /// <summary>仅读取注册表中的 ServerArgs 覆盖值，未设置时返回 null。</summary>
+    public static string? GetServerArgsOverride() => GetAppStringOrNull(ServerArgsName);
+
     /// <summary>读取注册表字符串值，缺失或空白时回退默认值。</summary>
     private static string GetAppString(string name, string fallback)
     {
@@ -171,6 +177,25 @@ internal static class Settings
         }
 
         return fallback;
+    }
+
+    /// <summary>读取注册表字符串值，未设置或空白时返回 null（用于区分“默认值”和“用户覆盖”）。</summary>
+    private static string? GetAppStringOrNull(string name)
+    {
+        try
+        {
+            using RegistryKey? key = Registry.CurrentUser.OpenSubKey(AppKeyPath);
+            if (key?.GetValue(name) is string s && !string.IsNullOrWhiteSpace(s))
+            {
+                return s;
+            }
+        }
+        catch (Exception)
+        {
+            // 注册表不可读时视为没有覆盖
+        }
+
+        return null;
     }
 
     /// <summary>开机自启状态：检查 HKCU Run 键里的值是否指向当前 exe。</summary>

@@ -18,14 +18,15 @@ internal static class DshServer
     public static (string FileName, string Arguments, string WorkingDirectory) BuildStartCommand()
     {
         string serverDir = Settings.GetServerDir();
-        string? nodeOverride = Settings.GetServerNode();
-        string? argsOverride = Settings.GetServerArgs();
+        string? nodeOverride = Settings.GetServerNodeOverride();
+        string? argsOverride = Settings.GetServerArgsOverride();
 
-        if (!string.IsNullOrWhiteSpace(nodeOverride) || !string.IsNullOrWhiteSpace(argsOverride))
+        if (nodeOverride is not null || argsOverride is not null)
         {
-            string node = string.IsNullOrWhiteSpace(nodeOverride) ? Settings.DefaultServerNode : nodeOverride.Trim();
-            string args = string.IsNullOrWhiteSpace(argsOverride) ? BuildDefaultServerArgs(serverDir) : argsOverride.Trim();
-            return (node, args, serverDir);
+            string node = nodeOverride ?? Settings.DefaultServerNode;
+            string args = argsOverride ?? BuildDefaultServerArgs(serverDir);
+            args = WithNoOpenIfSupported(serverDir, args);
+            return (node, args.Trim(), serverDir);
         }
 
         string? pnpm = ResolveOnPath("pnpm.cmd");
@@ -58,6 +59,15 @@ internal static class DshServer
     {
         string args = Settings.DefaultServerArgs;
         if (SupportsNoOpen(serverDir))
+        {
+            args += " --no-open";
+        }
+        return args;
+    }
+
+    private static string WithNoOpenIfSupported(string serverDir, string args)
+    {
+        if (SupportsNoOpen(serverDir) && !args.Contains("--no-open", StringComparison.OrdinalIgnoreCase))
         {
             args += " --no-open";
         }

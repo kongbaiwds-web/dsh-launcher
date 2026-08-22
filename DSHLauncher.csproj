@@ -12,7 +12,7 @@
       <RootNamespace>DSHLauncher</RootNamespace>
       <AssemblyTitle>DeepSeek Harness启动器</AssemblyTitle>
       <Product>DeepSeek Harness启动器</Product>
-    <Version>1.5.1</Version>
+    <Version>1.5.2</Version>
     <ApplicationHighDpiMode>PerMonitorV2</ApplicationHighDpiMode>
     <ApplicationIcon>DSHLauncher.ico</ApplicationIcon>
     <!-- 只保留英文资源，去掉 WebView2 附带的多语言卫星程序集，保持输出精简 -->
